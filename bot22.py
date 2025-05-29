@@ -1,3 +1,26 @@
+
+
+
+Make a remove last bid command more better
+
+#1 it should only edits the bids not remove the whole caption of approved poke
+
+#2. When we use this command it shows all the approved pokes name with internal link
+
+#3 when we click on pokes it shows all the previous bids ok then with the bidders name , username, userid
+
+#4 with this we get a button remove the last bid and then restores the last bid of the previous bidder with their all info And same update the caption
+
+#5 use by admins only
+
+#6 when we use this remove last bid command it shows list of all approved pokes not button but Internal links ok
+
+Now give full filr
+
+
+
+
+
 import logging
 from telegram import (
     Update, BotCommand, InlineKeyboardMarkup, InlineKeyboardButton, Message
