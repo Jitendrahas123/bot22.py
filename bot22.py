@@ -12,14 +12,14 @@ from telegram.error import BadRequest
 # -----------------------
 # Bot Configuration
 # -----------------------
-TOKEN = "7972689145:AAH_71WEOKCbhzKZa7iY3Nq8xyKMVVpZCZc"
+TOKEN = "7972689145:AAEsCTgXOXtwE0a6tZZARofSzNe6B5S_LuE"
 BOT_USERNAME = "Auction_Best_Bot"  # e.g., "Auction_Best_Bot"
 ADMIN_IDS = [1850686769, 5925112646, 7797689351, 7783911874, 1345211497,6467898610]  # Replace with your admin IDs
 # Groups/Channels for required membership:
-REQUIRED_GROUPS = ["@ImNotRacist_911", "@husbandowaifu"]
+REQUIRED_GROUPS = ["@ImNotRacist_911", "@husbando_waifu"]
 # Public Auction Channel (main posting) and Trade Group (secondary posting)
 AUCTION_CHANNEL = "@ImNotRacist_911"  # main public channel for auction posts
-TRADE_GROUP = "@husbandowaifu"        # second group where auction info is also posted
+TRADE_GROUP = "@husbando_waifu"        # second group where auction info is also posted
 HEXAMONBOT_ID = 572621020
 
 # Global flags
@@ -64,7 +64,6 @@ logger = logging.getLogger(__name__)
 # Bot Commands
 # -----------------------
 BOT_COMMANDS = [
-    BotCommand("remove_last_bid", "↩️ Remove bid on any item (admin only)"),
     BotCommand("start", "🏆 Start the Pokémon Auction Bot"),
     BotCommand("add", "➕ Add your Pokémon/TMs for auction"),
     BotCommand("myitems", "📦 View your approved items"),
@@ -76,8 +75,7 @@ BOT_COMMANDS = [
     BotCommand("start_auction", "✅ Start auction (Admin only)"),
     BotCommand("message", "📢 Broadcast a message (Admin only)"),
     BotCommand("last_bid", "📊 View all bids on approved items"),
-    
-]
+    BotCommand("remove_last_bid", "🗑 Remove last bid from item (Admin only)")]
 
 # -----------------------
 # Helper Functions
@@ -145,14 +143,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("💬 Auction Group", url="https://t.me/ImNotRacist_911"),
-         InlineKeyboardButton("🤝 Trade Group", url="https://t.me/husbandowaifu")]
+         InlineKeyboardButton("🤝 Trade Group", url="https://t.me/husbando_waifu")]
     ])
     welcome_msg = (
         "✨ Welcome to Pokémon Grabber Bot! ✨\n"
         "This bot manages the ultimate Pokémon & TMs auctions in Pokémon Grabber 🎉\n\n"
         "⚠️ Please make sure to join the required Channel & Groups:\n"
         "• Auction Channel: @ImNotRacist_911\n"
-        "• Trade Group: @husbandowaifu\n\n"
+        "• Trade Group: @husbando_waifu\n\n"
         "Use /add to submit your items for auction.\n"
     )
     try:
@@ -607,7 +605,7 @@ async def handle_tms_price_confirmation(update: Update, context: ContextTypes.DE
     # Optionally, send a copy of the submission to the Auction Channel and Trade Group if auto-approved later.
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("👉 Join Auction Channel", url="https://t.me/ImNotRacist_911")],
-        [InlineKeyboardButton("👉 Join Trade Group", url="https://t.me/husbandowaifu")]
+        [InlineKeyboardButton("👉 Join Trade Group", url="https://t.me/husbando_waifu")]
     ])
     await query.message.reply_text(
         f"Your TMs ({context.user_data['tms_name']}) has been submitted for approval! ✅\n\n"
@@ -816,7 +814,7 @@ async def handle_price_confirmation(update: Update, context: ContextTypes.DEFAUL
             logger.error(f"Failed to send notification to admin {admin_id}: {e}")
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("👉 Join Auction Channel", url="https://t.me/ImNotRacist_911")],
-        [InlineKeyboardButton("👉 Join Trade Group", url="https://t.me/husbandowaifu")]
+        [InlineKeyboardButton("👉 Join Trade Group", url="https://t.me/husbando_waifu")]
     ])
     await query.message.reply_text(
         f"Your {context.user_data['name']} Pokémon has been submitted for approval! ✅\n\n"
@@ -928,56 +926,6 @@ async def broadcast_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await query.message.reply_text("📢 Please type the message to broadcast:")
         return BROADCAST_TEXT
-
-
-async def remove_last_bid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_user.id not in ADMIN_IDS:
-        return await update.message.reply_text("❌ You are not authorized to use this command.")
-    if update.message.chat.type != "private":
-        return await update.message.reply_text("💬 Use this command in a private chat.")
-
-    user_id = update.effective_user.id
-    items_with_user_bids = [
-        (item_id, item) for item_id, item in auction_items.items()
-        if item.get("approved") and item.get("bids") and item["bids"][-1]["user_id"] == user_id
-    ]
-
-    if not items_with_user_bids:
-        return await update.message.reply_text("❌ You have no recent bids to remove.")
-
-    for item_id, item in items_with_user_bids:
-        bids = item.get("bids", [])
-        if len(bids) < 2:
-            item["highest_bid"] = item["price"]
-            item["highest_bidder"] = None
-            item["highest_bidder_username"] = None
-        else:
-            previous_bid = bids[-2]
-            item["highest_bid"] = previous_bid["amount"]
-            item["highest_bidder"] = previous_bid["user_id"]
-            item["highest_bidder_username"] = previous_bid["username"]
-
-        removed_bid = bids.pop()
-
-        try:
-            new_caption = f"{item['name']} - Current Bid: {item['highest_bid']:,} PD\n"
-            new_caption += f"Bidder: @{item.get('highest_bidder_username', 'None')}"
-            if item.get("message_id"):
-                await context.bot.edit_message_caption(
-                    chat_id=AUCTION_CHANNEL,
-                    message_id=item["message_id"],
-                    caption=new_caption
-                )
-            if item.get("trade_message_id"):
-                await context.bot.edit_message_caption(
-                    chat_id=TRADE_GROUP,
-                    message_id=item["trade_message_id"],
-                    caption=new_caption
-                )
-        except Exception as e:
-            logger.error(f"Error updating message after removing bid: {e}")
-
-    await update.message.reply_text("✅ Your last bids were removed and previous bids restored.")
 
 # -----------------------
 # /mybids Command Handler
@@ -1187,7 +1135,7 @@ async def handle_refresh(update: Update, context: ContextTypes.DEFAULT_TYPE):
     alert_msg = (
         f"Item ID: {item_id}\n"
         "Bids refreshed successfully! ✅\n"
-        "Join @husbandowaifu"
+        "Join @husbando_waifu"
     )
     await query.answer(alert_msg, show_alert=True)
 
@@ -1212,9 +1160,53 @@ async def my_items(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = "📦 Your approved items:\n\n" + "\n".join(approved_lines)
     await update.message.reply_text(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
+async def my_bids(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.chat.type != "private":
+        await update.message.reply_text("💬 Please use this command in a private chat with me.")
+        return
+    user_id = update.effective_user.id
+    bid_lines = []
+    for item_id, item in auction_items.items():
+        if item.get("approved") and item.get("highest_bidder") == user_id and item.get("message_id"):
+            channel_link = f"https://t.me/{AUCTION_CHANNEL[1:]}/{item['message_id']}"
+            bid_lines.append(f'- <a href="{channel_link}">{item["name"]}</a>')
+    if not bid_lines:
+        await update.message.reply_text("😔 You have no active bids.")
+        return
+    text = "💰 Your active bids:\n\n" + "\n".join(bid_lines)
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+
+async def all_items(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.chat.type != "private":
+        await update.message.reply_text("💬 Please use this command in a private chat with me.")
+        return
+    groups = {}
+    for item in auction_items.values():
+        if item.get("approved") and item.get("message_id"):
+            cat = item.get("category", "Unknown").capitalize()
+            if cat not in groups:
+                groups[cat] = []
+            channel_link = f"https://t.me/{AUCTION_CHANNEL[1:]}/{item['message_id']}"
+            groups[cat].append(f'- <a href="{channel_link}">{item["name"]}</a>')
+    if not groups:
+        await update.message.reply_text("😔 No approved items found.")
+        return
+    text_lines = []
+    for cat in sorted(groups.keys()):
+        text_lines.append(f"<b>{cat}:</b>")
+        text_lines.extend(groups[cat])
+        text_lines.append("")
+    text = "\n".join(text_lines)
+    await update.message.reply_text(text, parse_mode=ParseMode.HTML, disable_web_page_preview=True)
+
+# -----------------------
+# Main Function
+# -----------------------
+
 async def last_bid(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type != "private":
-        return await update.message.reply_text("💬 Please use this command in a private chat with me.")
+    if update.effective_user.id not in ADMIN_IDS:
+        await update.message.reply_text("❌ You are not authorized to use this command.")
+        return
 
     buttons = []
     for item_id, item in auction_items.items():
@@ -1254,18 +1246,22 @@ async def show_bids_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await query.edit_message_text("\n".join(lines), parse_mode=ParseMode.HTML, disable_web_page_preview=True)
 
-# -----------------------
-# Main Function
-# -----------------------
+# Add to your app handler setup in main()
+    application.add_handler(CommandHandler("last_bid", last_bid))
+    application.add_handler(CommandHandler("remove_last_bid", remove_last_bid))
+    application.add_handler(CallbackQueryHandler(handle_remove_bid_callback, pattern=r"^showremove_"))
+    application.add_handler(CallbackQueryHandler(handle_remove_bid_action, pattern=r"^removebid_"))
+    application.add_handler(CallbackQueryHandler(show_bids_callback, pattern=r"^viewbids_"))
+
 def main():
     application = Application.builder().token(TOKEN).build()
+    application.add_error_handler(error_handler)
 
     add_conv_handler = ConversationHandler(
         entry_points=[CommandHandler("add", add_item_command)],
         states={
             # Category selection, Pokémon Flow, and TMs Flow
             CATEGORY_SELECTION: [CallbackQueryHandler(handle_category)],
-            
             # Pokémon Flow:
             NAME_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_name)],
             NAME_CONFIRMATION: [CallbackQueryHandler(handle_name_confirmation)],
@@ -1279,7 +1275,6 @@ def main():
             BOOSTED_CONFIRMATION: [CallbackQueryHandler(handle_boosted_confirmation)],
             PRICE_INPUT: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_price)],
             PRICE_CONFIRMATION: [CallbackQueryHandler(handle_price_confirmation)],
-            
             # TMs Flow:
             TMS_NAME: [MessageHandler(filters.TEXT & ~filters.COMMAND, handle_tms_name)],
             TMS_NAME_CONFIRMATION: [CallbackQueryHandler(handle_tms_name_confirmation)],
@@ -1335,19 +1330,164 @@ def main():
     application.add_handler(CommandHandler("stop_submission", stop_submission))
     application.add_handler(CommandHandler("end_auction", end_auction))
     application.add_handler(CommandHandler("start_auction", start_auction))
-    application.add_handler(CommandHandler("remove_last_bid", remove_last_bid))
-    application.add_handler(CommandHandler("last_bid", last_bid))
-    application.add_handler(CallbackQueryHandler(show_bids_callback, pattern=r"^viewbids_"))
-    
     application.add_handler(
         MessageHandler(filters.TEXT & filters.ChatType.PRIVATE & ~filters.COMMAND, handle_bid_in_private)
     )
 
     async def set_commands(app):
         await app.bot.set_my_commands(BOT_COMMANDS)
-
     application.post_init = set_commands
+
+    application.add_handler(CommandHandler("last_bid", last_bid))
+    application.add_handler(CommandHandler("remove_last_bid", remove_last_bid))
+    application.add_handler(CallbackQueryHandler(handle_remove_bid_callback, pattern=r"^showremove_"))
+    application.add_handler(CallbackQueryHandler(handle_remove_bid_action, pattern=r"^removebid_"))
+    application.add_handler(CallbackQueryHandler(show_bids_callback, pattern=r"^viewbids_"))
+
     application.run_polling()
 
-if __name__ == "__main__":
+
+
+
+# -----------------------
+# /remove_last_bid Command Handler (Admin Only)
+# -----------------------
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.constants import ParseMode
+
+async def remove_last_bid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id not in ADMIN_IDS:
+        await update.message.reply_text("❌ You are not authorized to use this command.")
+        return
+
+    buttons = []
+    for item_id, item in auction_items.items():
+        if item.get("approved") and item.get("message_id"):
+            label = f"{item['name']} - {item_id}"
+            buttons.append([InlineKeyboardButton(label, callback_data=f"showremove_{item_id}")])
+
+    if not buttons:
+        await update.message.reply_text("❌ No approved Pokémon found.")
+        return
+
+    await update.message.reply_text(
+        "🗑 Select a Pokémon to remove the last bid:",
+        reply_markup=InlineKeyboardMarkup(buttons)
+    )
+
+async def handle_remove_bid_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    item_id = query.data.split("showremove_", 1)[-1]
+    item = auction_items.get(item_id)
+
+    if not item or not item.get("bids"):
+        return await query.edit_message_text("❌ No bids found for this item.")
+
+    bids = item["bids"]
+    lines = [f"<b>{item['name']}</b> - All Bids:"]
+    for bid in bids:
+        lines.append(f"• @{bid.get('username')} (<code>{bid.get('user_id')}</code>): <b>{bid.get('amount'):,}</b> PD")
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🗑 Remove Last Bid", callback_data=f"removebid_{item_id}")]
+    ])
+
+    await query.edit_message_text("\n".join(lines), parse_mode=ParseMode.HTML, reply_markup=keyboard)
+
+async def handle_remove_bid_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    item_id = query.data.split("removebid_", 1)[-1]
+    item = auction_items.get(item_id)
+
+    if not item or not item.get("bids"):
+        return await query.edit_message_text("❌ No bids found to remove.")
+
+    removed_bid = item["bids"].pop()
+    previous_bid = item["bids"][-1] if item["bids"] else None
+
+    if previous_bid:
+        item["highest_bid"] = previous_bid["amount"]
+        item["highest_bidder"] = previous_bid["user_id"]
+        item["highest_bidder_username"] = previous_bid["username"]
+    else:
+        item["highest_bid"] = item["price"]
+        item["highest_bidder"] = None
+        item["highest_bidder_username"] = None
+
+    new_caption = ""
+    if item.get('category') == 'tms':
+        new_caption = (
+            f"=== TMs Page ===\n{item.get('tms_text', '')}\n\n"
+            f"🎮 TMs Name: {item['name']}\n"
+            f"Base Price: {item['price']:,} PD\n"
+            f"Current Bid: {item['highest_bid']:,} PD\n"
+            f"Bidder: @{item['highest_bidder_username'] or item['highest_bidder'] or 'None'}"
+        )
+    else:
+        new_caption = (
+            f"=== Info Page ===\n{item.get('info_text', '')}\n\n"
+            f"=== IVs Page ===\n{item.get('ivs_text', '')}\n\n"
+            f"=== Moveset Page ===\n{item.get('moveset_text', '')}\n\n"
+            f"Name: {item['name']}\n"
+            f"Category: {item.get('category', 'Unknown')}\n"
+            f"Submitted by: @{item.get('owner_username', 'NoUsername')} (ID: {item.get('owner')})\n"
+            f"Base Price: {item['price']:,} PD\n"
+            f"Current Bid: {item['highest_bid']:,} PD\n"
+            f"Boosted: {item.get('boosted')}\n"
+            f"Bidder: @{item['highest_bidder_username'] or item['highest_bidder'] or 'None'}"
+        )
+
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔄 Refresh", callback_data=f"refresh_{item_id}"),
+         InlineKeyboardButton("💵 Place Bid", url=f"https://t.me/{BOT_USERNAME}?start=bid_{item_id}")]
+    ])
+
+    try:
+        await context.bot.edit_message_caption(
+            chat_id=AUCTION_CHANNEL,
+            message_id=item.get("message_id"),
+            caption=new_caption,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML
+        )
+    except Exception:
+        await context.bot.edit_message_text(
+            chat_id=AUCTION_CHANNEL,
+            message_id=item.get("message_id"),
+            text=new_caption,
+            reply_markup=keyboard,
+            parse_mode=ParseMode.HTML
+        )
+
+    if item.get("trade_message_id"):
+        try:
+            await context.bot.edit_message_caption(
+                chat_id=TRADE_GROUP,
+                message_id=item.get("trade_message_id"),
+                caption=new_caption,
+                reply_markup=keyboard,
+                parse_mode=ParseMode.HTML
+            )
+        except Exception:
+            await context.bot.edit_message_text(
+                chat_id=TRADE_GROUP,
+                message_id=item.get("trade_message_id"),
+                text=new_caption,
+                reply_markup=keyboard,
+                parse_mode=ParseMode.HTML
+            )
+
+    await query.edit_message_text(f"✅ Last bid removed for {item['name']}.")
+
+
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    print(f"⚠️ Exception occurred: {context.error}")
+
+
+if __name__ == '__main__':
     main()
+
+
+
