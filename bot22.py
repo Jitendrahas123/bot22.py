@@ -14,7 +14,7 @@ from telegram.error import BadRequest
 # -----------------------
 TOKEN = "7972689145:AAEsCTgXOXtwE0a6tZZARofSzNe6B5S_LuE"
 BOT_USERNAME = "Auction_Best_Bot"  # e.g., "Auction_Best_Bot"
-ADMIN_IDS = [1850686769, 5925112646, 7797689351, 7783911874, 5631189181,6467898610]  # Replace with your admin IDs
+ADMIN_IDS = [1850686769, 5925112646, 7797689351, 7783911874, 5631189181, 6467898610]  # Replace with your admin IDs
 # Groups/Channels for required membership:
 REQUIRED_GROUPS = ["@ImNotRacist_911", "@husbando_waifu"]
 # Public Auction Channel (main posting) and Trade Group (secondary posting)
